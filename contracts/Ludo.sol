@@ -2,6 +2,8 @@
 pragma solidity ^0.8.17;
 
 contract Ludo {
+    error PieceIsAtTheEnd();
+
     uint8 public BoardSize = 56;
     struct Player {
         address addr;
@@ -52,6 +54,8 @@ contract Ludo {
         require(players.length >= minPlayers, "Minimum number of players is 2");
         require(players[turn].addr != msg.sender, "Its not your turn");
         require(turn < players.length, "All players have rolled");
+        require(!ended, "Game has ended");
+
         diceResult = uint8(block.timestamp % 6) + 1;
 
         if (turn == players.length) {
@@ -63,6 +67,7 @@ contract Ludo {
 
     function movePiece(uint8 pieceIndex) public {
         require(started, "Game has not started yet");
+        require(!ended, "Game has ended");
         require(msg.sender == players[turn].addr, "It's not your turn");
         require(pieceIndex < 4, "Invalid piece index");
 
@@ -78,5 +83,32 @@ contract Ludo {
             );
             currentPlayer.piecePositions[pieceIndex] += diceResult;
         }
+
+        checkWinCondition();
+    }
+
+    function checkWinCondition() internal {
+        Player storage currentPlayer = players[turn];
+        bool allPiecesHome = true;
+
+        for (uint8 i = 0; i < 4; i++) {
+            if (currentPlayer.piecePositions[i] != 56) {
+                allPiecesHome = false;
+                break;
+            }
+        }
+
+        if (allPiecesHome) {
+            currentPlayer.hasWon = true;
+            ended = true;
+        }
+    }
+
+    function getPlayer(uint8 index) public view returns (Player memory player) {
+        return players[index];
+    }
+
+    function getPlayers() public view returns (Player[] memory) {
+        return players;
     }
 }
